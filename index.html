@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Таблица прогресса</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 20px auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+    input[type="text"] { width: 100%; padding: 8px; font-size: 16px; }
+    .total { margin-top: 20px; font-weight: bold; }
+    button { margin-top: 10px; padding: 10px 20px; }
+  </style>
+</head>
+<body>
+
+<h2>Прогресс персонажа</h2>
+<label for="charName">Имя персонажа:</label><br />
+<input type="text" id="charName" placeholder="Введите имя"><br />
+<button onclick="loadProgress()">Загрузить</button>
+<button onclick="saveProgress()">Сохранить</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>Босс</th>
+      <th>Золото</th>
+      <th>Пройден</th>
+    </tr>
+  </thead>
+  <tbody id="bossTableBody"></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="2">Общее золото:</td>
+      <td id="totalGold">0</td>
+    </tr>
+  </tfoot>
+</table>
+
+<script>
+  const bosses = [
+    { name: "Дракон", gold: 500 },
+    { name: "Лич", gold: 700 },
+    { name: "Гидра", gold: 400 },
+    { name: "Сфинкс", gold: 300 },
+    { name: "Минотавр", gold: 250 }
+  ];
+
+  const tbody = document.getElementById("bossTableBody");
+
+  bosses.forEach((boss, index) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${boss.name}</td>
+      <td>${boss.gold}</td>
+      <td><input type="checkbox" data-index="${index}"></td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  function updateTotalGold() {
+    let total = 0;
+    const checkboxes = tbody.querySelectorAll("input[type='checkbox']");
+    checkboxes.forEach((cb, idx) => {
+      if (cb.checked) total += bosses[idx].gold;
+    });
+    document.getElementById("totalGold").textContent = total;
+  }
+
+  tbody.addEventListener("change", updateTotalGold);
+
+  function getBossesData() {
+    const data = {};
+    const checkboxes = tbody.querySelectorAll("input[type='checkbox']");
+    checkboxes.forEach((cb, idx) => {
+      data[bosses[idx].name] = cb.checked;
+    });
+    return data;
+  }
+
+  function setBossesData(savedData) {
+    const checkboxes = tbody.querySelectorAll("input[type='checkbox']");
+    checkboxes.forEach((cb, idx) => {
+      cb.checked = savedData[bosses[idx].name] || false;
+    });
+    updateTotalGold();
+  }
+
+  function loadProgress() {
+    const name = document.getElementById("charName").value.trim();
+    if (!name) return alert("Введите имя персонажа!");
+
+    fetch('/load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          setBossesData(data.bosses);
+          alert("Прогресс загружен!");
+        } else {
+          alert("Персонаж не найден.");
+        }
+      });
+  }
+
+  function saveProgress() {
+    const name = document.getElementById("charName").value.trim();
+    if (!name) return alert("Введите имя персонажа!");
+
+    const data = {
+      bosses: getBossesData()
+    };
+
+    fetch('/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, data })
+    })
+      .then(res => res.json())
+      .then(() => {
+        alert("Сохранено!");
+      });
+  }
+</script>
+
+</body>
+</html>
