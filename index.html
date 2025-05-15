@@ -118,12 +118,24 @@
 
   // Посчитать общее золото у персонажа
   function updateTotalGoldDisplay(char) {
-    let total = 0;
-    bosses.forEach(boss => {
-      if (char.progress[boss.name]) total += boss.gold;
-    });
-    document.getElementById(`total-${char.name}`).textContent = `Общее золото: ${total}`;
+  let total = 0;
+  bosses.forEach(boss => {
+    if (char.progress[boss.name]) total += boss.gold;
+  });
+
+  // Ищем контейнер персонажа
+  const containers = document.querySelectorAll(".char-container");
+  for (let container of containers) {
+    const strong = container.querySelector("strong");
+    if (strong && strong.textContent === char.name) {
+      const totalDiv = container.querySelector(`#total-${char.name}`);
+      if (totalDiv) {
+        totalDiv.textContent = `Общее золото: ${total}`;
+      }
+      break;
+    }
   }
+}
 
   // Обновление прогресса при изменении чекбоксов
   function updateGold(name) {
