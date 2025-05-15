@@ -2,40 +2,24 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Таблица прогресса</title>
+  <title>Таблица персонажей</title>
   <style>
-    body { font-family: Arial; max-width: 600px; margin: 20px auto; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+    body { font-family: Arial; max-width: 800px; margin: 20px auto; }
     input[type="text"] { width: 100%; padding: 8px; font-size: 16px; }
-    .total { margin-top: 20px; font-weight: bold; }
-    button { margin-top: 10px; padding: 10px 20px; }
+    .char-container { border: 1px solid #ccc; padding: 15px; margin-top: 20px; border-radius: 5px; }
+    .char-header { display: flex; justify-content: space-between; align-items: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px; border: 1px solid #ccc; text-align: center; }
+    button { margin-left: 5px; }
+    .total-gold { font-weight: bold; margin-top: 10px; }
   </style>
 </head>
 <body>
 
-<h2>Прогресс персонажа</h2>
-<label for="charName">Имя персонажа:</label><br />
-<input type="text" id="charName" placeholder="Введите имя"><br />
-<button onclick="loadProgress()">Загрузить</button>
-<button onclick="saveProgress()">Сохранить</button>
-
-<table>
-  <thead>
-    <tr>
-      <th>Босс</th>
-      <th>Золото</th>
-      <th>Пройден</th>
-    </tr>
-  </thead>
-  <tbody id="bossTableBody"></tbody>
-  <tfoot>
-    <tr>
-      <td colspan="2">Общее золото:</td>
-      <td id="totalGold">0</td>
-    </tr>
-  </tfoot>
-</table>
+<h2>Прогресс персонажей</h2>
+<input type="text" id="newCharName" placeholder="Имя нового персонажа">
+<button onclick="addCharacter()">Добавить</button>
+<div id="charsList"></div>
 
 <script>
   const bosses = [
@@ -46,84 +30,143 @@
     { name: "Минотавр", gold: 250 }
   ];
 
-  const tbody = document.getElementById("bossTableBody");
+  let characters = [];
 
-  bosses.forEach((boss, index) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${boss.name}</td>
-      <td>${boss.gold}</td>
-      <td><input type="checkbox" data-index="${index}"></td>
-    `;
-    tbody.appendChild(row);
-  });
+  // Добавить нового персонажа
+  function addCharacter() {
+    const nameInput = document.getElementById("newCharName");
+    const name = nameInput.value.trim();
+    if (!name) return alert("Введите имя персонажа");
 
-  function updateTotalGold() {
-    let total = 0;
-    const checkboxes = tbody.querySelectorAll("input[type='checkbox']");
-    checkboxes.forEach((cb, idx) => {
-      if (cb.checked) total += bosses[idx].gold;
-    });
-    document.getElementById("totalGold").textContent = total;
+    if (characters.some(c => c.name === name)) {
+      alert("Персонаж с таким именем уже существует");
+      return;
+    }
+
+    const newChar = { name, progress: {} };
+    bosses.forEach(b => newChar.progress[b.name] = false);
+    characters.push(newChar);
+    renderCharacters();
+    nameInput.value = "";
   }
 
-  tbody.addEventListener("change", updateTotalGold);
+  // Отрендерить всех персонажей
+  function renderCharacters() {
+    const list = document.getElementById("charsList");
+    list.innerHTML = "";
 
-  function getBossesData() {
-    const data = {};
-    const checkboxes = tbody.querySelectorAll("input[type='checkbox']");
-    checkboxes.forEach((cb, idx) => {
-      data[bosses[idx].name] = cb.checked;
-    });
-    return data;
-  }
+    characters.forEach(char => {
+      const container = document.createElement("div");
+      container.className = "char-container";
 
-  function setBossesData(savedData) {
-    const checkboxes = tbody.querySelectorAll("input[type='checkbox']");
-    checkboxes.forEach((cb, idx) => {
-      cb.checked = savedData[bosses[idx].name] || false;
-    });
-    updateTotalGold();
-  }
+      const header = document.createElement("div");
+      header.className = "char-header";
+      header.innerHTML = `
+        <strong>${char.name}</strong>
+        <button onclick="removeCharacter('${char.name}')">Удалить</button>
+      `;
+      container.appendChild(header);
 
-  function loadProgress() {
-    const name = document.getElementById("charName").value.trim();
-    if (!name) return alert("Введите имя персонажа!");
+      const table = document.createElement("table");
+      const thead = document.createElement("thead");
+      thead.innerHTML = `
+        <tr>
+          <th>Босс</th>
+          <th>Золото</th>
+          <th>Пройден</th>
+        </tr>
+      `;
+      table.appendChild(thead);
 
-    fetch('/load', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data) {
-          setBossesData(data.bosses);
-          alert("Прогресс загружен!");
-        } else {
-          alert("Персонаж не найден.");
-        }
+      const tbody = document.createElement("tbody");
+      bosses.forEach(boss => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${boss.name}</td>
+          <td>${boss.gold}</td>
+          <td><input type="checkbox" onchange="updateGold('${char.name}')" data-boss="${boss.name}" ${char.progress[boss.name] ? 'checked' : ''}></td>
+        `;
+        tbody.appendChild(row);
       });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+
+      const totalDiv = document.createElement("div");
+      totalDiv.className = "total-gold";
+      totalDiv.id = `total-${char.name}`;
+      updateTotalGoldDisplay(char);
+      container.appendChild(totalDiv);
+
+      const btnSave = document.createElement("button");
+      btnSave.textContent = "Сохранить";
+      btnSave.onclick = () => saveCharacter(char.name);
+      container.appendChild(btnSave);
+
+      list.appendChild(container);
+    });
   }
 
-  function saveProgress() {
-    const name = document.getElementById("charName").value.trim();
-    if (!name) return alert("Введите имя персонажа!");
+  // Посчитать общее золото у персонажа
+  function updateTotalGoldDisplay(char) {
+    let total = 0;
+    bosses.forEach(boss => {
+      if (char.progress[boss.name]) total += boss.gold;
+    });
+    document.getElementById(`total-${char.name}`).textContent = `Общее золото: ${total}`;
+  }
 
-    const data = {
-      bosses: getBossesData()
-    };
+  // Обновление прогресса при изменении чекбоксов
+  function updateGold(name) {
+    const char = characters.find(c => c.name === name);
+    const checkboxes = document.querySelectorAll(`[data-boss]`);
+    bosses.forEach(boss => {
+      const cb = [...checkboxes].find(el => el.dataset.boss === boss.name && el.closest('.char-container')?.querySelector('strong')?.textContent === name);
+      if (cb) {
+        char.progress[boss.name] = cb.checked;
+      }
+    });
+    updateTotalGoldDisplay(char);
+  }
 
+  // Сохранить персонажа на сервер
+  function saveCharacter(name) {
+    const char = characters.find(c => c.name === name);
     fetch('/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, data })
-    })
+      body: JSON.stringify({ name, data: char.progress })
+    }).then(res => res.json())
+     .then(() => alert("Сохранено!"));
+  }
+
+  // Удалить персонажа
+  function removeCharacter(name) {
+    if (!confirm("Удалить персонажа?")) return;
+    characters = characters.filter(c => c.name !== name);
+    fetch('/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    }).then(res => res.json())
+     .then(() => renderCharacters());
+  }
+
+  // Загрузить всех персонажей с сервера
+  function loadAllCharacters() {
+    fetch('/characters')
       .then(res => res.json())
-      .then(() => {
-        alert("Сохранено!");
+      .then(data => {
+        characters = data.map(row => ({
+          name: row.name,
+          progress: JSON.parse(row.data)
+        }));
+        renderCharacters();
       });
   }
+
+  // Инициализация
+  loadAllCharacters();
 </script>
 
 </body>

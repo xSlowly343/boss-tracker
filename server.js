@@ -13,7 +13,8 @@ const db = new sqlite3.Database('./database.db');
 db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS characters (
-      name TEXT PRIMARY KEY,
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE,
       data TEXT
     )
   `);
@@ -22,7 +23,15 @@ db.serialize(() => {
 app.use(express.static(__dirname));
 app.use(bodyParser.json());
 
-// Получить данные персонажа
+// Получить список всех персонажей
+app.get('/characters', (req, res) => {
+  db.all(`SELECT * FROM characters`, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// Загрузить конкретного персонажа
 app.post('/load', (req, res) => {
   const { name } = req.body;
   db.get(`SELECT * FROM characters WHERE name = ?`, [name], (err, row) => {
@@ -31,7 +40,7 @@ app.post('/load', (req, res) => {
   });
 });
 
-// Сохранить данные персонажа
+// Сохранить персонажа
 app.post('/save', (req, res) => {
   const { name, data } = req.body;
   const json = JSON.stringify(data);
@@ -44,6 +53,15 @@ app.post('/save', (req, res) => {
       res.json({ success: true });
     }
   );
+});
+
+// Удалить персонажа
+app.post('/delete', (req, res) => {
+  const { name } = req.body;
+  db.run(`DELETE FROM characters WHERE name = ?`, [name], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true });
+  });
 });
 
 app.listen(PORT, () => {

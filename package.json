@@ -1,5 +1,5 @@
 {
-  "name": "boss-tracker",
+  "name": "boss-tracker-multi",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
