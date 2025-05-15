@@ -34,78 +34,87 @@
 
   // Добавить нового персонажа
   function addCharacter() {
-    const nameInput = document.getElementById("newCharName");
-    const name = nameInput.value.trim();
-    if (!name) return alert("Введите имя персонажа");
+  const nameInput = document.getElementById("newCharName");
+  const name = nameInput.value.trim();
+  if (!name) return alert("Введите имя персонажа");
 
-    if (characters.some(c => c.name === name)) {
-      alert("Персонаж с таким именем уже существует");
-      return;
-    }
-
-    const newChar = { name, progress: {} };
-    bosses.forEach(b => newChar.progress[b.name] = false);
-    characters.push(newChar);
-    renderCharacters();
-    nameInput.value = "";
+  if (characters.some(c => c.name === name)) {
+    alert("Персонаж с таким именем уже существует");
+    return;
   }
+
+  const newChar = {
+    name,
+    progress: {}
+  };
+
+  bosses.forEach(boss => {
+    newChar.progress[boss.name] = false;
+  });
+
+  characters.push(newChar);
+  renderCharacters();
+  nameInput.value = "";
+}
 
   // Отрендерить всех персонажей
   function renderCharacters() {
-    const list = document.getElementById("charsList");
-    list.innerHTML = "";
+  console.log("Рендерю персонажей:", characters);
 
-    characters.forEach(char => {
-      const container = document.createElement("div");
-      container.className = "char-container";
+  const list = document.getElementById("charsList");
+  list.innerHTML = "";
 
-      const header = document.createElement("div");
-      header.className = "char-header";
-      header.innerHTML = `
-        <strong>${char.name}</strong>
-        <button onclick="removeCharacter('${char.name}')">Удалить</button>
+  characters.forEach(char => {
+    const container = document.createElement("div");
+    container.className = "char-container";
+
+    const header = document.createElement("div");
+    header.className = "char-header";
+    header.innerHTML = `
+      <strong>${char.name}</strong>
+      <button onclick="removeCharacter('${char.name}')">Удалить</button>
+    `;
+    container.appendChild(header);
+
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    thead.innerHTML = `
+      <tr>
+        <th>Босс</th>
+        <th>Золото</th>
+        <th>Пройден</th>
+      </tr>
+    `;
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    bosses.forEach(boss => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${boss.name}</td>
+        <td>${boss.gold}</td>
+        <td><input type="checkbox" onchange="updateGold('${char.name}')" data-boss="${boss.name}" ${char.progress[boss.name] ? 'checked' : ''}></td>
       `;
-      container.appendChild(header);
-
-      const table = document.createElement("table");
-      const thead = document.createElement("thead");
-      thead.innerHTML = `
-        <tr>
-          <th>Босс</th>
-          <th>Золото</th>
-          <th>Пройден</th>
-        </tr>
-      `;
-      table.appendChild(thead);
-
-      const tbody = document.createElement("tbody");
-      bosses.forEach(boss => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${boss.name}</td>
-          <td>${boss.gold}</td>
-          <td><input type="checkbox" onchange="updateGold('${char.name}')" data-boss="${boss.name}" ${char.progress[boss.name] ? 'checked' : ''}></td>
-        `;
-        tbody.appendChild(row);
-      });
-
-      table.appendChild(tbody);
-      container.appendChild(table);
-
-      const totalDiv = document.createElement("div");
-      totalDiv.className = "total-gold";
-      totalDiv.id = `total-${char.name}`;
-      updateTotalGoldDisplay(char);
-      container.appendChild(totalDiv);
-
-      const btnSave = document.createElement("button");
-      btnSave.textContent = "Сохранить";
-      btnSave.onclick = () => saveCharacter(char.name);
-      container.appendChild(btnSave);
-
-      list.appendChild(container);
+      tbody.appendChild(row);
     });
-  }
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+
+    const totalDiv = document.createElement("div");
+    totalDiv.className = "total-gold";
+    totalDiv.id = `total-${char.name}`;
+    updateTotalGoldDisplay(char);
+    container.appendChild(totalDiv);
+
+    const btnSave = document.createElement("button");
+    btnSave.textContent = "Сохранить";
+    btnSave.onclick = () => saveCharacter(char.name);
+    container.appendChild(btnSave);
+
+    list.appendChild(container);
+  });
+}
 
   // Посчитать общее золото у персонажа
   function updateTotalGoldDisplay(char) {
